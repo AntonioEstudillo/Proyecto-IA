@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interfaz Gráfica para Google Generative AI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        #container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        #inputContainer {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+        #submit {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+        #newChat {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        #response {
+            margin-top: 20px;
+        }
+        #responseText {
+            width: 100%;
+            height: 400px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: none;
+            overflow: auto;
+            white-space: pre-wrap;
+            background-color: #f9f9f9;
+        }
+        .userMessage {
+            color: #333;
+        }
+        .aiMessage {
+            color: #007BFF;
+        }
+        #historyContainer {
+            margin-top: 20px;
+        }
+        .historyItem {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #e9ecef;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Consulta con Google Generative AI</h1>
+        <div id="inputContainer">
+            <input type="text" id="input" placeholder="Escribe tu consulta...">
+            <button id="submit">Enviar</button>
+        </div>
+        <div id="response">
+            <textarea id="responseText" readonly></textarea>
+        </div>
+        <button id="newChat">Nuevo Chat</button>
+        <div id="historyContainer"></div>
+    </div>
+    <script>
+        let chatHistory = [];
+
+        document.getElementById('submit').addEventListener('click', async () => {
+            const input = document.getElementById('input').value;
+            const responseText = document.getElementById('responseText');
+
+            if (input.trim().toLowerCase() === "exit") {
+                responseText.value += "\nUsuario: Saliendo...";
+                return;
+            }
+
+            // Añadir el mensaje del usuario
+            responseText.value += `\nUsuario: ${input}\n`;
+            document.getElementById('input').value = ''; // Limpiar el campo de entrada
+
+            // Scroll to the bottom of the textarea
+            responseText.scrollTop = responseText.scrollHeight;
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: input })
+                });
+
+                const data = await response.json();
+                responseText.value += `AI: ${data.response}\n`;
+            } catch (error) {
+                responseText.value += "AI: Error al generar la respuesta\n";
+            }
+
+            // Scroll to the bottom of the textarea
+            responseText.scrollTop = responseText.scrollHeight;
+        });
+
+        document.getElementById('newChat').addEventListener('click', () => {
+            const responseText = document.getElementById('responseText');
+            if (responseText.value.trim() !== "") {
+                chatHistory.push(responseText.value.trim());
+                updateHistory();
+            }
+            responseText.value = "";
+        });
+
+        function updateHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = "";
+            chatHistory.forEach((chat, index) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'historyItem';
+                historyItem.innerText = `Chat ${index + 1}`;
+                historyItem.addEventListener('click', () => {
+                    loadChat(index);
+                });
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        function loadChat(index) {
+            const responseText = document.getElementById('responseText');
+            responseText.value = chatHistory[index];
+            
+            responseText.scrollTop = responseText.scrollHeight;
+        }
+    </script>
+</body>
+</html>
